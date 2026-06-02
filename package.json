@@ -1,0 +1,7 @@
+{
+  "name": "peer-proxy",
+  "version": "1.0.0",
+  "description": "Anthropic API proxy for PEER / Esti Heller tools",
+  "type": "module",
+  "private": true
+}
