@@ -221,21 +221,30 @@ header::after{content:'';position:absolute;bottom:0;right:0;left:0;height:1px;ba
   </div>
 </div>
 
-<!-- PROXY URL MODAL -->
+<!-- PROXY/KEY MODAL -->
 <div class="modal-overlay" id="setupModal" style="display:none">
   <div class="modal">
     <h3>🔧 הגדרת חיבור</h3>
-    <p>הכניסי את כתובת ה-proxy שלך (Vercel). זה מאובטח — המפתח נשמר שם, לא בדפדפן.</p>
+    <p>בחרי אחת מהאפשרויות:</p>
+
+    <div style="font-size:11px;letter-spacing:1px;color:var(--gold);font-weight:600;margin-bottom:6px">אפשרות א — מפתח API ישיר (מומלץ)</div>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." dir="ltr" style="margin-bottom:4px">
+    <div style="font-size:11px;color:var(--ink-whisper);margin-bottom:14px">המפתח נשמר רק בדפדפן שלך. לא נשלח לשום שרת חיצוני.</div>
+
+    <div style="font-size:11px;letter-spacing:1px;color:var(--gold);font-weight:600;margin-bottom:6px">אפשרות ב — Proxy URL</div>
     <input type="url" id="proxyInput" placeholder="https://peer-proxy.vercel.app/api/claude" dir="ltr">
-    <button class="modal-btn" onclick="saveProxy()">שמור והתחל</button>
-    <div class="modal-note">הכתובת נשמרת רק בדפדפן שלך (localStorage)</div>
+
+    <button class="modal-btn" onclick="saveConfig()" style="margin-top:14px">שמור והתחל</button>
+    <div class="modal-note">הכתובת/מפתח נשמרים רק בדפדפן (localStorage)</div>
   </div>
 </div>
 
 <script>
 // ─── Config ──────────────────────────────────────────────────────────────────
 const STORAGE_KEY = "peer_legal_proxy";
+const KEY_STORAGE  = "peer_legal_apikey";
 let PROXY_URL = localStorage.getItem(STORAGE_KEY) || "";
+let API_KEY   = localStorage.getItem(KEY_STORAGE)  || "";
 
 const SYSTEM = `אתה עוזר משפטי מומחה לדיני משפחה ובית דין רבני בישראל.
 אתה עוזר לאסתי הלר-גפנר בניהול התיק שלה מול בעלה לשעבר יוסף גפנר.
@@ -269,20 +278,23 @@ const msgStore = {}; // store message texts by id
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 window.onload = () => {
-  if (!PROXY_URL) {
+  if (!API_KEY && !PROXY_URL) {
     document.getElementById("setupModal").style.display = "flex";
   }
 };
 
 function openSetup() {
   document.getElementById("proxyInput").value = PROXY_URL;
+  document.getElementById("apiKeyInput").value = API_KEY;
   document.getElementById("setupModal").style.display = "flex";
 }
-function saveProxy() {
-  const val = document.getElementById("proxyInput").value.trim();
-  if (!val.startsWith("http")) { alert("כתובת לא תקינה"); return; }
-  PROXY_URL = val;
-  localStorage.setItem(STORAGE_KEY, val);
+
+function saveConfig() {
+  const key  = document.getElementById("apiKeyInput").value.trim();
+  const proxy = document.getElementById("proxyInput").value.trim();
+  if (!key && !proxy) { alert("יש להכניס מפתח API או כתובת proxy"); return; }
+  if (key)   { API_KEY = key;   localStorage.setItem(KEY_STORAGE, key);   }
+  if (proxy) { PROXY_URL = proxy; localStorage.setItem(STORAGE_KEY, proxy); }
   document.getElementById("setupModal").style.display = "none";
 }
 
@@ -351,7 +363,7 @@ async function sendMessage() {
   const input = document.getElementById("userInput");
   const text = input.value.trim();
   if (!text || isLoading) return;
-  if (!PROXY_URL) { document.getElementById("setupModal").style.display = "flex"; return; }
+  if (!API_KEY && !PROXY_URL) { document.getElementById("setupModal").style.display = "flex"; return; }
 
   // Clear welcome
   const msgContainer = document.getElementById("messages");
@@ -384,16 +396,25 @@ async function sendMessage() {
   document.getElementById("sendBtn").disabled = true;
 
   try {
-    const res = await fetch(PROXY_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-opus-4-8",
-        max_tokens: 4096,
-        system: SYSTEM,
-        messages: messages
-      })
-    });
+    const payload = { model: "claude-opus-4-8", max_tokens: 4096, system: SYSTEM, messages };
+    let res;
+    if (API_KEY) {
+      res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": API_KEY,
+          "anthropic-version": "2023-06-01"
+        },
+        body: JSON.stringify(payload)
+      });
+    } else {
+      res = await fetch(PROXY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    }
 
     const data = await res.json();
     document.getElementById(thinkId)?.remove();
