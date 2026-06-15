@@ -203,6 +203,15 @@ header::after{content:'';position:absolute;bottom:0;right:0;left:0;height:1px;ba
     </div>
 
     <div class="input-area">
+      <div style="display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:5px;background:var(--cream);border:1px solid var(--border);border-radius:3px;padding:6px 11px;font-size:11.5px;color:var(--ink-faint);cursor:pointer">
+          📎 צרף קובץ
+          <input type="file" id="fileInput" accept=".txt,.docx,.pdf,.doc" style="display:none" onchange="attachFile(this)">
+        </label>
+        <button onclick="quickAsk('תכין לי בקשה רשמית לבית הדין הרבני בנושא: ')" style="background:var(--cream);border:1px solid var(--border);border-radius:3px;padding:6px 11px;font-size:11.5px;color:var(--ink-faint);cursor:pointer">📄 הכן בקשה רשמית</button>
+        <button onclick="quickAsk('תכין לי תצהיר בנושא: ')" style="background:var(--cream);border:1px solid var(--border);border-radius:3px;padding:6px 11px;font-size:11.5px;color:var(--ink-faint);cursor:pointer">✍ תצהיר</button>
+        <div id="attachedFile" style="display:none;align-items:center;gap:6px;background:rgba(168,134,46,.08);border:1px solid var(--gold-line);border-radius:3px;padding:5px 10px;font-size:11px;color:var(--gold)"></div>
+      </div>
       <div class="input-row">
         <textarea class="input-box" id="userInput" placeholder="כתבי שאלה, בקשה, או מה שרלוונטי לתיק..." rows="1"
           onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
@@ -254,6 +263,8 @@ const SYSTEM = `אתה עוזר משפטי מומחה לדיני משפחה וב
 
 let messages = [];
 let isLoading = false;
+let attachedText = "";
+let attachedName = "";
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 window.onload = () => {
@@ -286,7 +297,42 @@ function autoResize(el) {
 
 function quickAsk(text) {
   document.getElementById("userInput").value = text;
-  sendMessage();
+  document.getElementById("userInput").focus();
+  // for doc/affidavit prompts, don't auto-send — let user complete
+  if (!text.endsWith(": ")) sendMessage();
+}
+
+function attachFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  attachedName = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    attachedText = e.target.result;
+    const el = document.getElementById("attachedFile");
+    el.style.display = "flex";
+    el.innerHTML = `📎 ${file.name} <button onclick="clearAttach()" style="background:none;border:none;cursor:pointer;color:var(--gold);font-size:13px;padding:0 3px">✕</button>`;
+  };
+  reader.readAsText(file, "utf-8");
+  input.value = "";
+}
+
+function clearAttach() {
+  attachedText = ""; attachedName = "";
+  const el = document.getElementById("attachedFile");
+  el.style.display = "none"; el.innerHTML = "";
+}
+
+function exportMessage(text, btnEl) {
+  const today = new Date().toLocaleDateString("he-IL");
+  const content = `תיק הלר-גפנר · ${today}\n${"=".repeat(50)}\n\n${text}`;
+  const blob = new Blob([content], {type:"text/plain;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `legal_${Date.now()}.txt`;
+  a.click();
+  btnEl.textContent = "✓ נשמר";
+  setTimeout(() => btnEl.textContent = "⬇ ייצוא", 2000);
 }
 
 function newChat() {
@@ -310,11 +356,18 @@ async function sendMessage() {
   const welcome = msgContainer.querySelector(".welcome");
   if (welcome) welcome.remove();
 
+  // Include attached file
+  let fullText = text;
+  if (attachedText) {
+    fullText = `${text}\n\n[תוכן הקובץ: ${attachedName}]\n${attachedText.slice(0, 6000)}`;
+    clearAttach();
+  }
+
   // Add user bubble
   addBubble("user", text);
   input.value = "";
   input.style.height = "auto";
-  messages.push({ role: "user", content: text });
+  messages.push({ role: "user", content: fullText });
 
   // Thinking indicator
   const thinkId = "think-" + Date.now();
@@ -363,10 +416,14 @@ function addBubble(role, text) {
   const container = document.getElementById("messages");
   const avatar = role === "user" ? "א" : "⚖";
   const html = formatText(text);
+  const exportBtn = role === "assistant"
+    ? `<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px;text-align:left">
+        <button onclick="exportMessage(${JSON.stringify(text)}, this)" style="background:none;border:1px solid var(--border);border-radius:3px;padding:4px 10px;font-size:11px;color:var(--ink-whisper);cursor:pointer">⬇ ייצוא</button>
+       </div>` : "";
   container.insertAdjacentHTML("beforeend", `
     <div class="msg ${role}">
       <div class="msg-avatar">${avatar}</div>
-      <div class="msg-bubble">${html}</div>
+      <div class="msg-bubble">${html}${exportBtn}</div>
     </div>`);
   container.scrollTop = container.scrollHeight;
 }
