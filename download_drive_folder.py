@@ -36,7 +36,7 @@ except ImportError:
 # ─── הגדרות ─────────────────────────────────────────────────────────────────
 
 FOLDER_ID   = "1sS1o-KNRcWQRu12gs_Su9-i2wnKxqf4R"
-DEST_ROOT   = Path(r"D:\12\עוד אוסדיטשר - הלר גפנר")
+DEST_ROOT   = Path(r"D:\12")
 LOG_FILE    = Path(r"D:\12\download_log.txt")
 TOKEN_FILE  = "token.json"
 CREDS_FILE  = "credentials.json"   # יש להוריד מ-Google Cloud Console
