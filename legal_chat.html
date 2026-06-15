@@ -265,6 +265,7 @@ let messages = [];
 let isLoading = false;
 let attachedText = "";
 let attachedName = "";
+const msgStore = {}; // store message texts by id
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 window.onload = () => {
@@ -323,13 +324,14 @@ function clearAttach() {
   el.style.display = "none"; el.innerHTML = "";
 }
 
-function exportMessage(text, btnEl) {
+function exportMessage(id, btnEl) {
+  const text = msgStore[id] || "";
   const today = new Date().toLocaleDateString("he-IL");
   const content = `תיק הלר-גפנר · ${today}\n${"=".repeat(50)}\n\n${text}`;
   const blob = new Blob([content], {type:"text/plain;charset=utf-8"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `legal_${Date.now()}.txt`;
+  a.download = `legal_${id}.txt`;
   a.click();
   btnEl.textContent = "✓ נשמר";
   setTimeout(() => btnEl.textContent = "⬇ ייצוא", 2000);
@@ -416,9 +418,11 @@ function addBubble(role, text) {
   const container = document.getElementById("messages");
   const avatar = role === "user" ? "א" : "⚖";
   const html = formatText(text);
+  const id = "m" + Date.now();
+  if (role === "assistant") msgStore[id] = text;
   const exportBtn = role === "assistant"
     ? `<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px;text-align:left">
-        <button onclick="exportMessage(${JSON.stringify(text)}, this)" style="background:none;border:1px solid var(--border);border-radius:3px;padding:4px 10px;font-size:11px;color:var(--ink-whisper);cursor:pointer">⬇ ייצוא</button>
+        <button data-id="${id}" onclick="exportMessage(this.dataset.id, this)" style="background:none;border:1px solid var(--border);border-radius:3px;padding:4px 10px;font-size:11px;color:var(--ink-whisper);cursor:pointer">⬇ ייצוא</button>
        </div>` : "";
   container.insertAdjacentHTML("beforeend", `
     <div class="msg ${role}">
