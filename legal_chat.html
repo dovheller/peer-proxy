@@ -139,6 +139,7 @@ header::after{content:'';position:absolute;bottom:0;right:0;left:0;height:1px;ba
     <div class="header-case-sub">בית הדין הרבני האזורי · ירושלים</div>
   </div>
   <div class="header-badge">⚖ פעיל</div>
+  <button onclick="openSetup()" title="הגדרות חיבור" style="background:rgba(200,169,106,.15);border:1px solid rgba(200,169,106,.3);color:var(--gold-bright);border-radius:3px;padding:6px 12px;font-size:12px;cursor:pointer;letter-spacing:.5px">⚙ חיבור</button>
 </header>
 
 <div class="layout">
@@ -261,6 +262,10 @@ window.onload = () => {
   }
 };
 
+function openSetup() {
+  document.getElementById("proxyInput").value = PROXY_URL;
+  document.getElementById("setupModal").style.display = "flex";
+}
 function saveProxy() {
   const val = document.getElementById("proxyInput").value.trim();
   if (!val.startsWith("http")) { alert("כתובת לא תקינה"); return; }
