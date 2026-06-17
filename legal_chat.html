@@ -13,7 +13,7 @@
 :root{
   --cream:#faf7f0;--cream-soft:#f4efe2;--white:#fff;--paper:#fdfaf2;
   --ink:#1a1814;--ink-soft:#3d3a32;--ink-faint:#6b6759;--ink-whisper:#a09b8a;
-  --gold:#a8862e;--gold-bright:#c8a96a;--gold-light:#e8dcb8;
+  --gold:#a8862e;--gold-text:#7a5f1f;--gold-bright:#c8a96a;--gold-light:#e8dcb8;
   --gold-line:rgba(168,134,46,.25);--gold-tint:rgba(168,134,46,.06);
   --border:rgba(26,24,20,.08);--border-strong:rgba(26,24,20,.16);
   --success:#5e8d5a;--danger:#a04848;--ai:#7d6ad4;
@@ -41,13 +41,13 @@ header::after{content:'';position:absolute;bottom:0;right:0;left:0;height:1px;ba
 /* SIDEBAR */
 .sidebar{width:260px;background:var(--cream-soft);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
 .sidebar-head{padding:16px 16px 12px;border-bottom:1px solid var(--border)}
-.sidebar-head h3{font-size:10px;letter-spacing:2px;color:var(--gold);font-weight:600;margin-bottom:10px}
+.sidebar-head h3{font-size:10px;letter-spacing:2px;color:var(--gold-text);font-weight:600;margin-bottom:10px}
 .case-fact{display:flex;gap:8px;align-items:flex-start;padding:7px 10px;background:var(--white);border-radius:3px;border:1px solid var(--border);margin-bottom:6px}
 .case-fact-icon{font-size:14px;flex-shrink:0;margin-top:1px}
 .case-fact-text{font-size:11.5px;color:var(--ink-soft);line-height:1.5}
 .case-fact-text strong{color:var(--ink);font-weight:600;display:block;font-size:10px;letter-spacing:.5px;margin-bottom:1px}
 
-.quick-head{padding:14px 16px 8px;font-size:10px;letter-spacing:2px;color:var(--gold);font-weight:600;border-bottom:1px solid var(--border)}
+.quick-head{padding:14px 16px 8px;font-size:10px;letter-spacing:2px;color:var(--gold-text);font-weight:600;border-bottom:1px solid var(--border)}
 .quick-list{padding:10px 10px;flex:1;overflow-y:auto}
 .quick-btn{display:block;width:100%;text-align:right;background:var(--white);border:1px solid var(--border);border-radius:3px;padding:9px 12px;font-size:12px;color:var(--ink-soft);cursor:pointer;margin-bottom:5px;transition:all .15s;line-height:1.4;font-weight:400}
 .quick-btn:hover{background:var(--gold-tint);border-color:var(--gold-line);color:var(--ink)}
@@ -120,8 +120,19 @@ header::after{content:'';position:absolute;bottom:0;right:0;left:0;height:1px;ba
 .modal-btn:hover{background:var(--gold-bright)}
 .modal-note{font-size:11px;color:var(--ink-whisper);margin-top:10px;text-align:center}
 
+.menu-btn{display:none}
+.sidebar-overlay{display:none}
+
 @media(max-width:640px){
-  .sidebar{display:none}
+  .menu-btn{display:flex;align-items:center;justify-content:center;background:rgba(200,169,106,.15);border:1px solid rgba(200,169,106,.3);color:var(--gold-bright);border-radius:3px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0}
+  .header-case-sub{display:none}
+  .sidebar{
+    display:flex;position:fixed;top:0;bottom:0;right:0;width:80%;max-width:300px;
+    z-index:90;transform:translateX(100%);transition:transform .25s ease;box-shadow:-8px 0 24px rgba(0,0,0,.2);
+  }
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:80;opacity:0;pointer-events:none;transition:opacity .25s ease}
+  .sidebar-overlay.open{opacity:1;pointer-events:auto}
   .messages{padding:14px 14px}
   .msg{max-width:95%}
   .input-area{padding:10px 14px}
@@ -139,13 +150,16 @@ header::after{content:'';position:absolute;bottom:0;right:0;left:0;height:1px;ba
     <div class="header-case-sub">בית הדין הרבני האזורי · ירושלים</div>
   </div>
   <div class="header-badge">⚖ פעיל</div>
-  <button onclick="openSetup()" title="הגדרות חיבור" style="background:rgba(200,169,106,.15);border:1px solid rgba(200,169,106,.3);color:var(--gold-bright);border-radius:3px;padding:6px 12px;font-size:12px;cursor:pointer;letter-spacing:.5px">⚙ חיבור</button>
+  <button class="menu-btn" onclick="toggleSidebar()" title="תפריט" aria-label="פתיחת תפריט עובדות התיק">☰</button>
+  <button onclick="openSetup()" title="הגדרות חיבור" aria-label="הגדרות חיבור" style="background:rgba(200,169,106,.15);border:1px solid rgba(200,169,106,.3);color:var(--gold-bright);border-radius:3px;padding:6px 12px;font-size:12px;cursor:pointer;letter-spacing:.5px">⚙ חיבור</button>
 </header>
 
 <div class="layout">
 
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar(false)"></div>
+
   <!-- SIDEBAR -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-head">
       <h3>עובדות מפתח</h3>
       <div class="case-fact">
@@ -210,11 +224,11 @@ header::after{content:'';position:absolute;bottom:0;right:0;left:0;height:1px;ba
         </label>
         <button onclick="quickAsk('תכין לי בקשה רשמית לבית הדין הרבני בנושא: ')" style="background:var(--cream);border:1px solid var(--border);border-radius:3px;padding:6px 11px;font-size:11.5px;color:var(--ink-faint);cursor:pointer">📄 הכן בקשה רשמית</button>
         <button onclick="quickAsk('תכין לי תצהיר בנושא: ')" style="background:var(--cream);border:1px solid var(--border);border-radius:3px;padding:6px 11px;font-size:11.5px;color:var(--ink-faint);cursor:pointer">✍ תצהיר</button>
-        <div id="attachedFile" style="display:none;align-items:center;gap:6px;background:rgba(168,134,46,.08);border:1px solid var(--gold-line);border-radius:3px;padding:5px 10px;font-size:11px;color:var(--gold)"></div>
+        <div id="attachedFile" style="display:none;align-items:center;gap:6px;background:rgba(168,134,46,.08);border:1px solid var(--gold-line);border-radius:3px;padding:5px 10px;font-size:11px;color:var(--gold-text)"></div>
       </div>
       <div class="input-row">
         <textarea class="input-box" id="userInput" placeholder="כתבי שאלה, בקשה, או מה שרלוונטי לתיק..." rows="1"
-          onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          aria-label="הקלידי שאלה או בקשה" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
         <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="שלח">➤</button>
       </div>
     </div>
@@ -223,18 +237,19 @@ header::after{content:'';position:absolute;bottom:0;right:0;left:0;height:1px;ba
 
 <!-- PROXY/KEY MODAL -->
 <div class="modal-overlay" id="setupModal" style="display:none">
-  <div class="modal">
+  <div class="modal" style="position:relative">
+    <button onclick="closeSetup()" title="סגירה" aria-label="סגירת חלון הגדרות" style="position:absolute;top:14px;left:14px;background:none;border:none;font-size:18px;color:var(--ink-whisper);cursor:pointer;line-height:1">✕</button>
     <h3>🔧 הגדרת חיבור</h3>
     <p>בחרי אחת מהאפשרויות:</p>
 
-    <div style="font-size:11px;letter-spacing:1px;color:var(--gold);font-weight:600;margin-bottom:6px">אפשרות א — מפתח API ישיר (מומלץ)</div>
-    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." dir="ltr" style="margin-bottom:4px">
-    <div style="font-size:11px;color:var(--ink-whisper);margin-bottom:14px">המפתח נשמר רק בדפדפן שלך. לא נשלח לשום שרת חיצוני.</div>
+    <div style="font-size:11px;letter-spacing:1px;color:var(--gold-text);font-weight:600;margin-bottom:6px">אפשרות ב — Proxy URL (מומלץ — המפתח לא נשמר בדפדפן)</div>
+    <input type="url" id="proxyInput" placeholder="https://peer-proxy.vercel.app/api/claude" dir="ltr" aria-label="כתובת Proxy" style="margin-bottom:14px">
 
-    <div style="font-size:11px;letter-spacing:1px;color:var(--gold);font-weight:600;margin-bottom:6px">אפשרות ב — Proxy URL</div>
-    <input type="url" id="proxyInput" placeholder="https://peer-proxy.vercel.app/api/claude" dir="ltr">
+    <div style="font-size:11px;letter-spacing:1px;color:var(--gold-text);font-weight:600;margin-bottom:6px">אפשרות א — מפתח API ישיר</div>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." dir="ltr" aria-label="מפתח API" style="margin-bottom:4px">
+    <div style="font-size:11px;color:var(--danger);margin-bottom:14px;line-height:1.5">⚠ המפתח נשמר בזיכרון הדפדפן (localStorage) ללא הצפנה. אם המכשיר משותף או נגיש לאחרים, עדיפה אפשרות ה-Proxy.</div>
 
-    <button class="modal-btn" onclick="saveConfig()" style="margin-top:14px">שמור והתחל</button>
+    <button class="modal-btn" onclick="saveConfig()" style="margin-top:0">שמור והתחל</button>
     <div class="modal-note">הכתובת/מפתח נשמרים רק בדפדפן (localStorage)</div>
   </div>
 </div>
@@ -283,10 +298,19 @@ window.onload = () => {
   }
 };
 
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeSetup();
+});
+
 function openSetup() {
   document.getElementById("proxyInput").value = PROXY_URL;
   document.getElementById("apiKeyInput").value = API_KEY;
   document.getElementById("setupModal").style.display = "flex";
+}
+
+function closeSetup() {
+  if (!API_KEY && !PROXY_URL) return; // must configure at least one before closing
+  document.getElementById("setupModal").style.display = "none";
 }
 
 function saveConfig() {
@@ -296,6 +320,14 @@ function saveConfig() {
   if (key)   { API_KEY = key;   localStorage.setItem(KEY_STORAGE, key);   }
   if (proxy) { PROXY_URL = proxy; localStorage.setItem(STORAGE_KEY, proxy); }
   document.getElementById("setupModal").style.display = "none";
+}
+
+function toggleSidebar(force) {
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sidebarOverlay");
+  const open = force !== undefined ? force : !sidebar.classList.contains("open");
+  sidebar.classList.toggle("open", open);
+  overlay.classList.toggle("open", open);
 }
 
 // ─── Chat ─────────────────────────────────────────────────────────────────────
@@ -309,22 +341,31 @@ function autoResize(el) {
 }
 
 function quickAsk(text) {
+  toggleSidebar(false);
   document.getElementById("userInput").value = text;
   document.getElementById("userInput").focus();
   // for doc/affidavit prompts, don't auto-send — let user complete
   if (!text.endsWith(": ")) sendMessage();
 }
 
+const ALLOWED_FILE_TYPES = [".txt", ".md", ".csv"];
+
 function attachFile(input) {
   const file = input.files[0];
   if (!file) return;
+  const ext = "." + (file.name.split(".").pop() || "").toLowerCase();
+  if (!ALLOWED_FILE_TYPES.includes(ext)) {
+    alert("ניתן לצרף רק קבצי טקסט (.txt, .md, .csv). קובץ מסוג " + ext + " לא נתמך כרגע — אפשר להעתיק את התוכן ישירות להודעה.");
+    input.value = "";
+    return;
+  }
   attachedName = file.name;
   const reader = new FileReader();
   reader.onload = e => {
     attachedText = e.target.result;
     const el = document.getElementById("attachedFile");
     el.style.display = "flex";
-    el.innerHTML = `📎 ${file.name} <button onclick="clearAttach()" style="background:none;border:none;cursor:pointer;color:var(--gold);font-size:13px;padding:0 3px">✕</button>`;
+    el.innerHTML = `📎 ${file.name} <button onclick="clearAttach()" style="background:none;border:none;cursor:pointer;color:var(--gold-text);font-size:13px;padding:0 3px">✕</button>`;
   };
   reader.readAsText(file, "utf-8");
   input.value = "";
@@ -336,8 +377,16 @@ function clearAttach() {
   el.style.display = "none"; el.innerHTML = "";
 }
 
+function stripMarkdown(text) {
+  return text
+    .replace(/^#{1,3} (.+)$/gm, "$1")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/^[\-\*•] /gm, "• ")
+    .replace(/^(\d+)\. /gm, "$1. ");
+}
+
 function exportMessage(id, btnEl) {
-  const text = msgStore[id] || "";
+  const text = stripMarkdown(msgStore[id] || "");
   const today = new Date().toLocaleDateString("he-IL");
   const content = `תיק הלר-גפנר · ${today}\n${"=".repeat(50)}\n\n${text}`;
   const blob = new Blob([content], {type:"text/plain;charset=utf-8"});
@@ -351,6 +400,7 @@ function exportMessage(id, btnEl) {
 
 function newChat() {
   messages = [];
+  for (const key in msgStore) delete msgStore[key];
   document.getElementById("messages").innerHTML = `
     <div class="welcome">
       <div class="welcome-icon">⚖️</div>
@@ -464,20 +514,20 @@ function formatText(text) {
 
   // Lists
   const lines = h.split("\n");
-  let out = [], inList = false;
+  let out = [], listType = null; // null | "ul" | "ol"
   for (const line of lines) {
     if (/^[\-\*•] /.test(line)) {
-      if (!inList) { out.push("<ul>"); inList = true; }
+      if (listType !== "ul") { if (listType) out.push("</" + listType + ">"); out.push("<ul>"); listType = "ul"; }
       out.push("<li>" + line.replace(/^[\-\*•] /,"") + "</li>");
     } else if (/^\d+\. /.test(line)) {
-      if (!inList) { out.push("<ol>"); inList = true; }
+      if (listType !== "ol") { if (listType) out.push("</" + listType + ">"); out.push("<ol>"); listType = "ol"; }
       out.push("<li>" + line.replace(/^\d+\. /,"") + "</li>");
     } else {
-      if (inList) { out.push(inList === true ? "</ul>" : "</ol>"); inList = false; }
+      if (listType) { out.push("</" + listType + ">"); listType = null; }
       out.push(line === "" ? "<br>" : "<p>" + line + "</p>");
     }
   }
-  if (inList) out.push("</ul>");
+  if (listType) out.push("</" + listType + ">");
   return out.join("");
 }
 </script>
